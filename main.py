@@ -12,18 +12,18 @@ from dotenv import load_dotenv
 # --- 1. LOAD SECURE KEYS ---
 load_dotenv()
 
+# Reverted to your original .env variable names
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY") # Changed from SERVICE_ROLE_KEY to match your Render screenshot
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") 
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    print("❌ ERROR: Supabase keys not found. Check your Render Environment Variables!")
+    print("❌ ERROR: Supabase keys not found. Check your .env or Render Environment Variables!")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # --- 2. INITIALIZE APP ---
 app = FastAPI()
 
-# Point this to your live Vercel URL once you have it
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
@@ -32,7 +32,6 @@ app.add_middleware(
 )
 
 # --- 3. LOAD TFLITE MODEL ---
-# Using the Interpreter saves ~300MB of RAM compared to tf.keras.models.load_model
 interpreter = tflite.Interpreter(model_path="flower_model.tflite")
 interpreter.allocate_tensors()
 
@@ -45,27 +44,23 @@ async def predict(file: UploadFile = File(...)):
     # --- 4. AI INFERENCE ---
     contents = await file.read()
     
-    # Prepare image for the model (RGB, 180x180)
     img = Image.open(io.BytesIO(contents)).convert('RGB').resize((180, 180))
     
-    # Preprocessing: Convert to float32 and normalize if your model requires it
     img_array = np.array(img, dtype=np.float32)
     img_array = np.expand_dims(img_array, axis=0) 
 
-    # Run Prediction
     interpreter.set_tensor(input_details[0]['index'], img_array)
     interpreter.invoke()
     predictions = interpreter.get_tensor(output_details[0]['index'])
     
-    # Get results
-    # Using simple exp for softmax since we removed heavy tf.nn.softmax
+    # Softmax logic using NumPy
     exp_preds = np.exp(predictions[0] - np.max(predictions[0]))
     score = exp_preds / exp_preds.sum()
     
     species = CLASS_NAMES[np.argmax(score)]
     conf = round(float(np.max(score)) * 100, 2)
 
-    # --- 5. CONSTANT LEARNING (Storage) ---
+    # --- 5. STORAGE ---
     file_id = str(uuid.uuid4())
     file_path = f"{file_id}.jpg"
     
