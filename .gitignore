@@ -3,3 +3,4 @@ __pycache__/
 .env
 *.keras
 !my_optimized_flower_model.keras
+!flower_model.tflite
