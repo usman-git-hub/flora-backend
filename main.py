@@ -38,6 +38,9 @@ interpreter.allocate_tensors()
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
 CLASS_NAMES = ['daisy', 'dandelion', 'rose', 'sunflower', 'tulip']
+@app.get("/")
+async def root():
+    return {"message": "Elora Digital AI Engine is Online"}
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
