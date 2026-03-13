@@ -26,7 +26,8 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://flora-frontend-three.vercel.app"], 
+    allow_origins=["*"], # Temporarily use "*" to confirm connection, then restrict later
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -49,7 +50,7 @@ async def predict(file: UploadFile = File(...)):
     
     img = Image.open(io.BytesIO(contents)).convert('RGB').resize((180, 180))
     
-    img_array = np.array(img, dtype=np.float32)
+    img_array = np.array(img, dtype=np.float32) / 255.0
     img_array = np.expand_dims(img_array, axis=0) 
 
     interpreter.set_tensor(input_details[0]['index'], img_array)
